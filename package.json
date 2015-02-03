@@ -6,7 +6,6 @@
     "fireball-x": {
         "asset": {
             "pattern": ".mp3 .ogg .wav",
-            "importer": "editor/audio-clip-importer.js",
             "meta": "editor/audio-clip-meta.js"
         }
     }
