@@ -1,5 +1,7 @@
 ﻿var Path = require('fire-path');
 
+// AudioClipMeta
+
 var AudioClipMeta = Fire.define('Fire.AudioClipMeta', Fire.AssetMeta);
 
 AudioClipMeta.prototype.createAsset = function ( path, cb ) {
