@@ -33,4 +33,6 @@ AudioClipMeta.prototype.import = function (file) {
     }.bind(this));
 };
 
+Fire.AudioClipMeta = AudioClipMeta;
+
 module.exports = AudioClipMeta;
