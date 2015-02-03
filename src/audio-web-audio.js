@@ -25,7 +25,7 @@
             }
         };
         Fire.LoadManager._loadFromXHR(url, cb, onProgress, 'arraybuffer');
-    };
+    }
 
     Fire.LoadManager.registerRawTypes('audio', loader);
     

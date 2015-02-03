@@ -17,7 +17,7 @@
 
         audio.src = url;
         audio.load();
-    };
+    }
 
     Fire.LoadManager.registerRawTypes('audio', loader);
 
