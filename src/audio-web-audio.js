@@ -37,9 +37,24 @@
         target._volumeGain = null;
     };
 
+    AudioContext.getBuffSource = function (target) {
+        if (!target._buffSource) {
+            target._buffSource = webAudio.createBufferSource();
+        }
+        return target._buffSource;
+    };
+
+    AudioContext.getVolumeGain = function (target) {
+        if (!target._volumeGain) {
+            target._volumeGain = webAudio.createGain();
+        }
+        return target._volumeGain;
+    };
+
     AudioContext.getCurrentTime = function (target) {
-        if (target && target._buffSource) {
-            var buffer = target._buffSource.buffer;
+        if (target) {
+            var source = this.getBuffSource(target);
+            var buffer = source.buffer;
             if (target._pause) {
                 return target._startOffset % buffer.duration;
             }
@@ -58,18 +73,20 @@
 
     AudioContext.updateTime = function (target) {
         // 当前时间就等于 audio source 的 _time
-        if (target && target._buffSource) {
-            var duration = target._buffSource.buffer.duration;
+        if (target) {
+            var source = this.getBuffSource(target);
+            var duration = source.buffer.duration;
             if (target._time > duration) {
                 target._time = duration;
             }
             target._curTime = target._time;
+            target._startOffset = target._curTime;
         }
     };
 
     // 静音
     AudioContext.updateMute = function (target) {
-        if (!target._volumeGain) { return; }
+        if (!target || !target._volumeGain) { return; }
         target._volumeGain.gain.value = target.mute ? -1 : this.updateVolume(target);
     };
     
@@ -81,31 +98,38 @@
     
     // 设置循环
     AudioContext.updateLoop = function (target) {
-        if (!target || !target._buffSource ) { return; }
-        target._buffSource.loop = target.loop;
+        if (!target) { return; }
+        var source = this.getBuffSource(target);
+        source.loop = target.loop;
     };
     
     // 将音乐源节点绑定具体的音频buffer
     AudioContext.updateAudioClip = function (target) {
-        if (!target || !target._buffSource) { return; }
-        target._buffSource.buffer = target.clip.rawData;
+        if (!target) { return; }
+        var source = this.getBuffSource(target);
+        source.buffer = target.clip.rawData;
     };
 
     // 暂停
     AudioContext.pause = function (target) {
-        this.stop(target);
+        this.stop(target, true);
     };
 
     // 停止
-    AudioContext.stop = function (target) {
-        if (!target._buffSource) { return; }
-        target._buffSource.stop();
-        if (target._pause) {
-            target._startOffset += webAudio.currentTime - target._startTime;
+    AudioContext.stop = function (target, autoStop) {
+        if (!target || !target._buffSource) { return; }
+        if (!autoStop) {
+            target._buffSource.onended = null;
         }
         else {
-            target._startOffset = 0;
+            if (target._pause) {
+                target._startOffset += webAudio.currentTime - target._startTime;
+            }
+            else {
+                target._startOffset = 0;
+            }
         }
+        target._buffSource.stop();
     };
 
     // 播放
@@ -113,6 +137,8 @@
         if (!target.clip || !target.clip.rawData) { return; }
         if (target._play && !target._pause) { return; }
         // 初始化
+        target._buffSource = null;
+        target._volumeGain = null;
         // 创建音频源节点
         var bufsrc = webAudio.createBufferSource();
         // 控制音量的节点
