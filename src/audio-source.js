@@ -19,10 +19,8 @@ var AudioSource = (function () {
     //-- 当前时间
     Object.defineProperty(AudioSource.prototype, 'time', {
         get: function () {
-            if (!this._play) {
-                return this._time;
-            }
-            return Fire.AudioContext.getCurrentTime(this);
+            this._time = Fire.AudioContext.getCurrentTime(this);
+            return this._time;
         },
         set: function (value) {
             if (this._time != value) {

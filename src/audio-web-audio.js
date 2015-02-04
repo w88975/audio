@@ -32,22 +32,27 @@
     AudioContext.initSource = function (target) {
         target._startOffset = 0;
         target._startTime = 0;
+        target._curTime = 0;
         target._buffSource = null;
         target._volumeGain = null;
     };
 
     AudioContext.getCurrentTime = function (target) {
-        if (target && target._buffSource && target._play) {
-            var loadedTime = webAudio.currentTime;
-            var curTime = (loadedTime - target._startTime) + target._time;
-            var duration = target._buffSource.buffer.duration;
-            if (curTime >= duration) {
-                curTime = duration;
+        if (target && target._buffSource) {
+            var buffer = target._buffSource.buffer;
+            if (target._pause) {
+                return target._startOffset % buffer.duration;
             }
-            return curTime;
+            else if (target._play) {
+                var loadedTime = webAudio.currentTime;
+                var curTime = target._startOffset + loadedTime - target._startTime;
+                var duration = buffer.duration;
+                curTime = curTime >= duration ? duration : curTime;
+                return curTime;
+            }
         }
         else {
-            return 0;
+            return target._time;
         }
     };
 
@@ -58,6 +63,7 @@
             if (target._time > duration) {
                 target._time = duration;
             }
+            target._curTime = target._time;
         }
     };
 
@@ -100,8 +106,6 @@
         else {
             target._startOffset = 0;
         }
-        target._buffSource = null;
-        target._volumeGain = null;
     };
 
     // 播放
@@ -109,21 +113,18 @@
         if (!target.clip || !target.clip.rawData) { return; }
         if (target._play && !target._pause) { return; }
         // 初始化
-        if (!target._buffSource) {
-            // 创建音频源节点
-            var bufsrc = webAudio.createBufferSource();
-            // 控制音量的节点
-            var gain = webAudio.createGain();
-            // source节点先连接到对音量控制的volume增益节点上
-            bufsrc.connect(gain);
-            // volume增益节点再连接到最终的输出设备上
-            gain.connect(webAudio.destination);
-            // 将音频源与硬件连接
-            bufsrc.connect(webAudio.destination);
-
-            target._buffSource = bufsrc;
-            target._volumeGain = gain;
-        }
+        // 创建音频源节点
+        var bufsrc = webAudio.createBufferSource();
+        // 控制音量的节点
+        var gain = webAudio.createGain();
+        // source节点先连接到对音量控制的volume增益节点上
+        bufsrc.connect(gain);
+        // volume增益节点再连接到最终的输出设备上
+        gain.connect(webAudio.destination);
+        // 将音频源与硬件连接
+        bufsrc.connect(webAudio.destination);
+        target._buffSource = bufsrc;
+        target._volumeGain = gain;
         // 设置开始播放时间
         target._startTime = webAudio.currentTime;
         // 将音乐源节点绑定具体的音频buffer
@@ -135,13 +136,14 @@
         // 是否循环播放
         this.updateLoop(target);
         // 播放音乐
-        if (target._pause) {
+        if (target._pause && target._curTime === 0) {
             var buffer = target._buffSource.buffer;
             target._buffSource.start(0, target._startOffset % buffer.duration);
         }
         else {
-            target._buffSource.start(0, target.time);
+            target._buffSource.start(0, target._curTime);
         }
+        target._curTime = 0;
         // 播放结束后的回调
         target._buffSource.onended = target.onPlayEnd.bind(target);
     };
